@@ -3,6 +3,9 @@ from tkinter import ttk
 from tkcalendar import *
 import customtkinter
 from openpyxl import load_workbook
+import AIPredictor as LESter
+
+LESter.train()
 
 customtkinter.set_appearance_mode("dark")  # Modes: system (default), light, dark
 customtkinter.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
@@ -24,15 +27,17 @@ def datePicker(event):
     calendar.resizable(False, False)
     calendar.title('Estimated Completion Date')
     calendar.geometry('250x220+590+370')
-    estimatedDateCalendar = Calendar(calendar, selectmode = "day", year = 2023, month = 3)
+    estimatedDateCalendar = Calendar(calendar, selectmode = "day", year = 2023, month = 3, date_pattern='MM/dd/yyyy')
     estimatedDateCalendar.place(x = 0, y = 0)
 
     submitButton = customtkinter.CTkButton(calendar, text = "Submit", command = grabDate)
     submitButton.place(x = 60, y = 190)
 
 def grabDate():
+    global calculateButton
     selectedDate.delete(0, END)
     selectedDate.insert(0, estimatedDateCalendar.get_date())
+    calculateButton.configure(state = NORMAL)
     calendar.destroy()
     
 def update():
@@ -91,54 +96,19 @@ def updateCheck():
         secondSqftEntry.grid_forget()
 
 def calculationClick():
-    global displayTotalCost
-    global displayTotalSqft
-    global displayOverhead
-    global displayPermit
-    global displayEngineering
-    global displayTrusses
-    global displayRoofing
-    global displayRoofingLabor
-    global displayRoofingMaterials
-    global displayBrick
-    global displayBrickLabor
-    global displayBrickMaterials
-    global displaySiding
-    global displaySidingLabor
-    global displaySidingMaterials
-    global displayMainCost
-    global displayMainSqft
-    global displayLumber
-    global displayFraming
-    global displayElectrical
-    global displayPlumbing
-    global displaySheetrock
-    global displayPainting
-    global displayHeating
-    global displayInsulation
-    global displayTrim
-    global displayTrimLabor
-    global displayTrimMaterials
-    global displaySecondCost
-    global displaySecondSqft
-    global displayBasementCost
-    global displayBasementSqft
-    global displayFinishedBasement
-    global displayConcrete
-    global displayConcreteLabor
-    global displayConcreteMaterials
-    global displayFoundation
-    global displayExcavation
-    global displayGravel
-    global displayGarageCost
-    global displayGarageSqft
     global secondTrue
     global isBasementFinished
 
-    path = "LibertyPriceBook.xlsx"
-    
-    workbook = load_workbook(path)
-    spreadsheet = workbook.active
+    stringDate = str(selectedDate.get())
+
+    if locationDropdown.get() == "Idaho Falls":
+        location = 0
+    elif locationDropdown.get() == "Ammon":
+        location = 1
+    elif locationDropdown.get() == "Iona":
+        location = 2
+    elif locationDropdown.get() == "Bonneville County":
+        location = 3
 
     doesExist = secondTrue
     isFinished = isBasementFinished
@@ -155,74 +125,81 @@ def calculationClick():
         basementFinalSqft = basementSqft
         finalSqft = garageFinalSqft + mainFinalSqft + basementFinalSqft
 
-    permitCost = spreadsheet["B2"].value * finalSqft
-    engineeringCost = spreadsheet["B3"].value * finalSqft
-    trussCostTotal = spreadsheet["B4"].value * finalSqft
-    roofingCostSqft = spreadsheet["B5"].value * finalSqft
-    roofingLaborCost = spreadsheet["B6"].value * finalSqft
+    LESter.predict(int(stringDate[0:2]), int(stringDate[3:5]), int(stringDate[6:10]), location, finalSqft)
+
+    path = "LibertyPriceBook.xlsx"
+    
+    workbook = load_workbook(path)
+    spreadsheet = workbook.active
+
+    permitCost = round(spreadsheet["B2"].value * finalSqft, 2)
+    engineeringCost = round(spreadsheet["B3"].value * finalSqft, 2)
+    trussCostTotal = round(spreadsheet["B4"].value * finalSqft, 2)
+    roofingCostSqft = round(spreadsheet["B5"].value * finalSqft, 2)
+    roofingLaborCost = round(spreadsheet["B6"].value * finalSqft, 2)
     roofingCostTotal = roofingCostSqft + roofingLaborCost
-    brickCostSqft = spreadsheet["B7"].value * finalSqft
-    brickCostLabor = spreadsheet["B8"].value * finalSqft
+    brickCostSqft = round(spreadsheet["B7"].value * finalSqft, 2)
+    brickCostLabor = round(spreadsheet["B8"].value * finalSqft, 2)
     brickCostTotal = brickCostSqft + brickCostLabor
-    sidingCostSqft = spreadsheet["B25"].value * finalSqft
-    sidingCostLabor = spreadsheet["B26"].value * finalSqft
+    sidingCostSqft = round(spreadsheet["B25"].value * finalSqft, 2)
+    sidingCostLabor = round(spreadsheet["B26"].value * finalSqft, 2)
     sidingCostTotal = sidingCostSqft + sidingCostLabor
 
     totalOtherCost = permitCost + engineeringCost + trussCostTotal + roofingCostTotal + brickCostTotal + sidingCostTotal
 
     
-    lumberSqft = spreadsheet["B9"].value
-    framingMainCostSqft = spreadsheet["B10"].value * mainFinalSqft
-    electricalMainCostSqft = spreadsheet["B11"].value * mainFinalSqft
-    plumbingMainCostSqft = spreadsheet["B12"].value * mainFinalSqft
-    sheetrockMainCostSqft = spreadsheet["B13"].value * mainFinalSqft
-    sheetrockMainCostLabor = spreadsheet["B14"].value * mainFinalSqft
+    lumberSqft = round(spreadsheet["B9"].value, 2)
+    framingMainCostSqft = round(spreadsheet["B10"].value * mainFinalSqft, 2)
+    electricalMainCostSqft = round(spreadsheet["B11"].value * mainFinalSqft, 2)
+    plumbingMainCostSqft = round(spreadsheet["B12"].value * mainFinalSqft, 2)
+    sheetrockMainCostSqft = round(spreadsheet["B13"].value * mainFinalSqft, 2)
+    sheetrockMainCostLabor = round(spreadsheet["B14"].value * mainFinalSqft, 2)
     sheetrockMainCostTotal = sheetrockMainCostSqft + sheetrockMainCostLabor    
-    paintingMainCostSqft = spreadsheet["B15"].value * mainFinalSqft
-    heatingMainCostSqft = spreadsheet["B16"].value * mainFinalSqft
-    insulationMainCostSqft = spreadsheet["B17"].value * mainFinalSqft
-    trimMainCostSqft = spreadsheet["B18"].value * mainFinalSqft
-    trimMainCostLabor = spreadsheet["B19"].value * mainFinalSqft
+    paintingMainCostSqft = round(spreadsheet["B15"].value * mainFinalSqft, 2)
+    heatingMainCostSqft = round(spreadsheet["B16"].value * mainFinalSqft, 2)
+    insulationMainCostSqft = round(spreadsheet["B17"].value * mainFinalSqft, 2)
+    trimMainCostSqft = round(spreadsheet["B18"].value * mainFinalSqft, 2)
+    trimMainCostLabor = round(spreadsheet["B19"].value * mainFinalSqft, 2)
     trimMainCostTotal = trimMainCostSqft + trimMainCostLabor
 
     mainCostTotal = (lumberSqft * mainFinalSqft) + framingMainCostSqft + electricalMainCostSqft + plumbingMainCostSqft + sheetrockMainCostTotal + paintingMainCostSqft + heatingMainCostSqft + insulationMainCostSqft + trimMainCostTotal
 
     if(doesExist == 1):
-        framingSecondCostSqft = spreadsheet["B10"].value * secondFinalSqft
-        electricalSecondCostSqft = spreadsheet["B11"].value * secondFinalSqft
-        plumbingSecondCostSqft = spreadsheet["B12"].value * secondFinalSqft
-        sheetrockSecondCostSqft = spreadsheet["B13"].value * secondFinalSqft
-        sheetrockSecondCostLabor = spreadsheet["B14"].value * secondFinalSqft
+        framingSecondCostSqft = round(spreadsheet["B10"].value * secondFinalSqft, 2)
+        electricalSecondCostSqft = round(spreadsheet["B11"].value * secondFinalSqft, 2)
+        plumbingSecondCostSqft = round(spreadsheet["B12"].value * secondFinalSqft, 2)
+        sheetrockSecondCostSqft = round(spreadsheet["B13"].value * secondFinalSqft, 2)
+        sheetrockSecondCostLabor = round(spreadsheet["B14"].value * secondFinalSqft, 2)
         sheetrockSecondCostTotal = sheetrockSecondCostSqft + sheetrockSecondCostLabor
-        paintingSecondCostSqft = spreadsheet["B15"].value * secondFinalSqft
-        heatingSecondCostSqft = spreadsheet["B16"].value * secondFinalSqft
-        insulationSecondCostSqft = spreadsheet["B17"].value * secondFinalSqft
-        trimSecondCostSqft = spreadsheet["B18"].value * secondFinalSqft
-        trimSecondCostLabor = spreadsheet["B19"].value * secondFinalSqft
+        paintingSecondCostSqft = round(spreadsheet["B15"].value * secondFinalSqft, 2)
+        heatingSecondCostSqft = round(spreadsheet["B16"].value * secondFinalSqft, 2)
+        insulationSecondCostSqft = round(spreadsheet["B17"].value * secondFinalSqft, 2)
+        trimSecondCostSqft = round(spreadsheet["B18"].value * secondFinalSqft, 2)
+        trimSecondCostLabor = round(spreadsheet["B19"].value * secondFinalSqft, 2)
         trimSecondCostTotal = trimSecondCostSqft + trimSecondCostLabor
 
         secondCostTotal = (lumberSqft * secondFinalSqft) + framingSecondCostSqft + electricalSecondCostSqft + plumbingSecondCostSqft + sheetrockSecondCostTotal + paintingSecondCostSqft + heatingSecondCostSqft + insulationSecondCostSqft + trimSecondCostTotal
 
     
-    framingBasementCostSqft = spreadsheet["B10"].value * basementFinalSqft
-    insulationBasementCostSqft = spreadsheet["B17"].value * basementFinalSqft
-    heatingBasementCostSqft = spreadsheet["B16"].value * basementFinalSqft
-    concreteBasementCostSqft = spreadsheet["B20"].value * basementFinalSqft
-    concreteBasementCostLabor = spreadsheet["B21"].value * basementFinalSqft
+    framingBasementCostSqft = round(spreadsheet["B10"].value * basementFinalSqft, 2)
+    insulationBasementCostSqft = round(spreadsheet["B17"].value * basementFinalSqft, 2)
+    heatingBasementCostSqft = round(spreadsheet["B16"].value * basementFinalSqft, 2)
+    concreteBasementCostSqft = round(spreadsheet["B20"].value * basementFinalSqft, 2)
+    concreteBasementCostLabor = round(spreadsheet["B21"].value * basementFinalSqft, 2)
     concreteBasementCostTotal = concreteBasementCostSqft + concreteBasementCostLabor
-    foundatoinCost = spreadsheet["B22"].value * finalSqft
-    excavationBasementCost = spreadsheet["B23"].value * basementFinalSqft
-    gravelBasementCost = spreadsheet["B24"].value * basementFinalSqft
+    foundatoinCost = round(spreadsheet["B22"].value * finalSqft, 2)
+    excavationBasementCost = round(spreadsheet["B23"].value * basementFinalSqft, 2)
+    gravelBasementCost = round(spreadsheet["B24"].value * basementFinalSqft, 2)
 
     if(isFinished == 1):
-        electricalBasementCostSqft = spreadsheet["B11"].value * basementFinalSqft
-        plumbingBasementCostSqft = spreadsheet["B12"].value * basementFinalSqft
-        sheetrockBasementCostSqft = spreadsheet["B13"].value * basementFinalSqft
-        sheetrockBasementCostLabor = spreadsheet["B14"].value * basementFinalSqft
+        electricalBasementCostSqft = round(spreadsheet["B11"].value * basementFinalSqft, 2)
+        plumbingBasementCostSqft = round(spreadsheet["B12"].value * basementFinalSqft, 2)
+        sheetrockBasementCostSqft = round(spreadsheet["B13"].value * basementFinalSqft, 2)
+        sheetrockBasementCostLabor = round(spreadsheet["B14"].value * basementFinalSqft, 2)
         sheetrockBasementCostTotal = sheetrockBasementCostSqft + sheetrockBasementCostLabor
-        paintingBasementCostSqft = spreadsheet["B15"].value * basementFinalSqft
-        trimBasementCostSqft = spreadsheet["B18"].value * basementFinalSqft
-        trimBasementCostLabor = spreadsheet["B19"].value * basementFinalSqft
+        paintingBasementCostSqft = round(spreadsheet["B15"].value * basementFinalSqft, 2)
+        trimBasementCostSqft = round(spreadsheet["B18"].value * basementFinalSqft, 2)
+        trimBasementCostLabor = round(spreadsheet["B19"].value * basementFinalSqft, 2)
         trimBasementCostTotal = trimBasementCostSqft + trimBasementCostLabor
         isBasementFinishedText = "TRUE"
         
@@ -233,24 +210,24 @@ def calculationClick():
         
         basementCostTotal = framingBasementCostSqft + heatingBasementCostSqft + insulationBasementCostSqft + concreteBasementCostTotal + foundatoinCost + excavationBasementCost + gravelBasementCost
 
-    heatingGarageCostSqft = spreadsheet["B16"].value * garageFinalSqft    
-    insulationGarageCostSqft = spreadsheet["B17"].value * garageFinalSqft
-    concreteGarageCostSqft = spreadsheet["B20"].value * garageFinalSqft
-    concreteGarageCostLabor = spreadsheet["B21"].value * garageFinalSqft
+    heatingGarageCostSqft = round(spreadsheet["B16"].value * garageFinalSqft, 2)    
+    insulationGarageCostSqft = round(spreadsheet["B17"].value * garageFinalSqft, 2)
+    concreteGarageCostSqft = round(spreadsheet["B20"].value * garageFinalSqft, 2)
+    concreteGarageCostLabor = round(spreadsheet["B21"].value * garageFinalSqft, 2)
     concreteGarageCostTotal = concreteGarageCostSqft + concreteGarageCostLabor
-    sheetrockGarageCostSqft = spreadsheet["B13"].value * garageFinalSqft
-    sheetrockGarageCostLabor = spreadsheet["B14"].value * garageFinalSqft
+    sheetrockGarageCostSqft = round(spreadsheet["B13"].value * garageFinalSqft, 2)
+    sheetrockGarageCostLabor = round(spreadsheet["B14"].value * garageFinalSqft, 2)
     sheetrockGarageCostTotal = sheetrockGarageCostSqft + sheetrockGarageCostLabor    
-    excavationGarageCost = spreadsheet["B23"].value * garageFinalSqft
-    gravelGarageCost = spreadsheet["B24"].value * garageFinalSqft
+    excavationGarageCost = round(spreadsheet["B23"].value * garageFinalSqft, 2)
+    gravelGarageCost = round(spreadsheet["B24"].value * garageFinalSqft, 2)
 
     garageCostTotal = heatingGarageCostSqft + insulationGarageCostSqft + concreteGarageCostTotal + excavationGarageCost + gravelGarageCost
 
     if(doesExist == 1):
-        totalOverhead = (mainCostTotal + secondCostTotal + basementCostTotal + garageCostTotal + totalOtherCost) * 0.06
+        totalOverhead = round((mainCostTotal + secondCostTotal + basementCostTotal + garageCostTotal + totalOtherCost) * 0.06, 2)
         totalCost = mainCostTotal + secondCostTotal + basementCostTotal + garageCostTotal + totalOverhead + totalOtherCost
     else:
-        totalOverhead = (mainCostTotal + basementCostTotal + garageCostTotal + totalOtherCost) * 0.06
+        totalOverhead = round((mainCostTotal + basementCostTotal + garageCostTotal + totalOtherCost) * 0.06, 2)
         totalCost = mainCostTotal + basementCostTotal + garageCostTotal + totalOverhead + totalOtherCost
    
     
@@ -351,11 +328,6 @@ def calculationClick():
     displayGravel = customtkinter.CTkLabel(mainFrame, text = "Gravel: $" + str(gravelGarageCost), anchor="w").grid(row = 76, column = 2, sticky=W+E)
     displayHeating = customtkinter.CTkLabel(mainFrame, text = "Heating: $" + str(heatingGarageCostSqft), anchor="w").grid(row = 77, column = 2, sticky=W+E)
     displayInsulation = customtkinter.CTkLabel(mainFrame, text = "Insulation: $" + str(insulationGarageCostSqft), anchor="w").grid(row = 78, column = 2, sticky=W+E)
-    
-def graphsClick():
-    placeHolder = customtkinter.CTkLabel(root, text = "Graphs Display here")
-    placeHolder.grid(row = 4, column = 2)
-
 
 #Labels
 estimatedDate = customtkinter.CTkLabel(root, text = "Estimated Finish Date")
@@ -370,8 +342,7 @@ totalSqftLabel = customtkinter.CTkLabel(root, text = "Total")
 addOnsLabel = customtkinter.CTkLabel(root, text = "Add Ons")
 
 #Buttons
-calculateButton = customtkinter.CTkButton(root, text = "Calculate Cost", command = calculationClick)
-graphButton = customtkinter.CTkButton(root, text = "Display Graph", command = graphsClick)
+calculateButton = customtkinter.CTkButton(root, text = "Calculate Cost", command = calculationClick, state= DISABLED)
 
 #Normal Entry Boxes
 mainSqftEntry = customtkinter.CTkEntry(root)
@@ -398,6 +369,7 @@ locationOptions = [
     "Bonneville County"
 ]
 locationDropdown = customtkinter.CTkOptionMenu(master=root, values=locationOptions, variable=locationSelected)
+locationDropdown.set("Idaho Falls")
 
 #Calendar Selection Menu
 selectedDate = customtkinter.CTkEntry(root)
@@ -436,6 +408,5 @@ garageSqftLabel.grid(row = 8, column = 0)
 garageSqftEntry.grid(row = 9, column = 0)
 
 calculateButton.grid(row = 10, column = 1)
-graphButton.grid(row = 10, column = 2)
 
 root.mainloop()
